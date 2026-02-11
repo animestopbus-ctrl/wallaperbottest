@@ -1,5 +1,5 @@
-# LastPerson07Bot - Production Dockerfile
-# Optimized for production with security best practices
+# LastPerson07Bot - Simpler Dockerfile
+# Works without complex graphics dependencies
 
 # Use Python 3.11 slim base image
 FROM python:3.11-slim
@@ -14,32 +14,17 @@ ENV PYTHONUNBUFFERED=1 \
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies with non-interactive frontend
+# Install minimal system dependencies
 RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
-    wget \
     curl \
+    wget \
     git \
     unzip \
-    libjpeg-dev \
-    libpng-dev \
-    netcat \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 # Create non-root user for security
 RUN groupadd -r botuser && \
     useradd -r -g botuser botuser
-
-# Copy requirements first
-COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
@@ -49,8 +34,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Create required directories
-RUN mkdir -p logs data && \
-    chown -R botuser:botuser /app/logs /app/data
+RUN mkdir -p logs data
 
 # Set permissions
 RUN chown -R botuser:botuser /app /app/logs /app/data
@@ -58,9 +42,9 @@ RUN chown -R botuser:botuser /app /app/logs /app/data
 # Switch to non-root user
 USER botuser
 
-# Health check command
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys; print('OK'); sys.exit(0)"
+    CMD python -c "import sys; print('OK'); sys.exit(0)" || exit 1
 
 # Default command
 CMD ["python", "app.py"]
@@ -69,7 +53,8 @@ CMD ["python", "app.py"]
 LABEL maintainer="LastPerson07Bot" \
       version="2.0.0" \
       description="Premium Wallpaper Fetching Telegram Bot" \
-      org.opencontainers.image.source="https://github.com/animestopbus-ctrl/wallpaperbottest"
+      org.opencontainers.image.source="https://github.com/animestopbus-ctrl/wallpaperbottest" \
+      org.opencontainers.image.licenses="MIT"
 
 # Expose port for health checks
 EXPOSE 8000
