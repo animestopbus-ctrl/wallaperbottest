@@ -1,10 +1,6 @@
-# LastPerson07Bot Docker Compose - Fixed Version
-# Production-ready with proper dependencies
-
 version: '3.8'
 
 services:
-  # Bot Service
   bot:
     build: 
       context: .
@@ -34,7 +30,7 @@ services:
     networks:
       - bot_network
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys; print('OK'); sys.exit(0)"]
+      test: ["CMD", "python", "-c", "import sys; print('Bot ready!'); sys.exit(0)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -44,114 +40,24 @@ services:
         limits:
           memory: 512M
           cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
+        restart_policy:
+          condition: on-failure
+          delay: 5s
+          max_attempts: 3
 
   # MongoDB Service
   mongodb:
     image: mongo:6.0
-    container_name: lastperson07_mongodb
+    container_name: lastperson7_mongodb
     restart: unless-stopped
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-admin}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-password123}
-      - MONGO_INITDB_DATABASE=lastperson07_bot
+      - MONGODB_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-admin}
+      - MONGODB_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-password123}
+      - MONGODB_INITDB_DATABASE=lastperson07_bot
     volumes:
       - mongodb_data:/data/db
-      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
-    command: mongod --auth --quiet --bind_ip_all --fork
+      - init: ["./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro"]
+    command: mongod --quiet --auth --bind_ip_all --fork --nojournal
 
-```yaml
-#!/bin/sh
-
-# MongoDB initialization script for LastPerson07Bot
-# This script is automatically copied to the container's docker-entrypoint directory
-
-// Check if database exists
-db = db.getSiblingDB('lastperson07_bot');
-if (!db.getCollectionNames().includes('users')) {
-    print('Database does not exist. Creating collections...');
-    
-    // Create indexes for better performance
-    db.users.createIndex({_id: 1}, {unique: true});
-    db.users.createIndex({'username': 1}, {sparse: true});
-    db.users.createIndex({'tier': 1});
-    db.users.createIndex({'banned': 1});
-    db.users.createIndex({'join_date': 1});
-    
-    // Create api_urls collection
-    db.createCollection('api_urls');
-    db.api_urls.createIndex({'url': 1}, {unique: true});
-    db.api_urls.createIndex({'source_name': 1});
-    
-    // Create schedules collection
-    db.createCollection('schedules');
-    db.schedules.createIndex({'chat_id': 1, 'category': 1}, {unique: true});
-    db.schedules.createIndex({'last_post_time': 1});
-    
-    // Create bot_settings collection
-    db.createCollection('bot_settings');
-    db.bot_settings.createIndex({'key': 1}, {unique: true});
-    
-    // Create logs collection
-    db.createCollection('logs');
-    db.logs.createIndex({'timestamp': 1});
-    db.logs.createIndex({'level': 1});
-    
-    print('Database initialized successfully!');
-} else {
-    print('Database already exists.');
-}
-
-// Set default settings
-if (typeof db.getCollection('bot_settings').findOne() === 'undefined') {
-    console.log('Setting up default bot settings...');
-    
-    // Core settings
-    db.bot_settings.insertMany([
-        {key: 'maintenance', value: false},
-        {key: 'bin_channel_id', value: null},
-        {key: 'delay_minutes', value: 5},
-        {key: 'free_fetch_limit', value: 5},
-        {key: 'owners', value: []},
-        {key: 'total_users', value: 0},
-        {key: 'premium_users', value: 0},
-        {key: 'banned_users', value: 0},
-        {key: 'owner_has_premium', value: false},
-        {key: 'custom_emoji_id', value: null}
-    ]);
-    
-    // Create admin owner
-    try {
-        owner_id = parseInt(process.env.OWNER_USER_ID || '0');
-        db.bot_settings.updateOne(
-            {key: 'owners', value: [owner_id]},
-            {upsert: true}
-        );
-        console.log(`Owner ID ${owner_id} set as admin`);
-    } catch (e) {
-        console.log('Could not set owner ID as admin:', e.message);
-    }
-    
-    print('Default settings created!');
-}
-
-// Enable replica set if enabled
-if (process.env.MONGODB_REPLICA_SET !== 'false') {
-    try {
-        if (!rs.conf()) {
-            console.log('Configuring replica set...');
-            db.adminCommand({
-                replSetGetDefault: 1,
-                replSetWriteConcerns: { w: 'majority'}
-            });
-        }
-    } catch (e) {
-        console.log('Could not configure replica set:', e.message);
-    }
-}
+    networks:
+      - bot_network
