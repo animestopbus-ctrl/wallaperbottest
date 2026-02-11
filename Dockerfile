@@ -1,6 +1,5 @@
 
-### **Dockerfile (Updated)**
-```dockerfile
+
 # LastPerson07Bot - Production Dockerfile
 # Optimized for production with security best practices
 
@@ -75,3 +74,4 @@ LABEL maintainer="LastPerson07Bot" \
   org.opencontainers.image.source="https://github.com/yourusername/LastPerson07" \
   org.opencontainers.image.licenses="MIT"
 ```*
+
