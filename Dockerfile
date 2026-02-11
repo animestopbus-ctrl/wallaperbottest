@@ -1,7 +1,6 @@
-# LastPerson07Bot - Simpler Dockerfile
-# Works without complex graphics dependencies
+# LastPerson07Bot - Production Dockerfile
+# Minimal dependencies for reliable builds
 
-# Use Python 3.11 slim base image
 FROM python:3.11-slim
 
 # Set environment variables
@@ -14,27 +13,29 @@ ENV PYTHONUNBUFFERED=1 \
 # Set working directory
 WORKDIR /app
 
-# Install minimal system dependencies
+# Install minimal system dependencies only
 RUN apt-get update && apt-get install -y \
     curl \
     wget \
     git \
     unzip \
-    && rm -rf /var/lib/apt/lists/* && apt-get clean
-
-# Create non-root user for security
-RUN groupadd -r botuser && \
-    useradd -r -g botuser botuser
+    netcat \
+    && rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Create app user
+RUN groupadd -r botuser && \
+    useradd -r -g botuser botuser
 
 # Create required directories
-RUN mkdir -p logs data
+RUN mkdir -p /app/logs /app/data
+
+# Copy application code
+COPY . .
 
 # Set permissions
 RUN chown -R botuser:botuser /app /app/logs /app/data
@@ -42,14 +43,18 @@ RUN chown -R botuser:botuser /app /app/logs /app/data
 # Switch to non-root user
 USER botuser
 
+# Environment setup
+ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin
+ENV PYTHONPATH=/usr/local/bin
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys; print('OK'); sys.exit(0)" || exit 1
+    CMD python -c "import sys; print('Bot ready!'); sys.exit(0)" || exit 1
 
 # Default command
 CMD ["python", "app.py"]
 
-# Labels for metadata
+# Labels
 LABEL maintainer="LastPerson07Bot" \
       version="2.0.0" \
       description="Premium Wallpaper Fetching Telegram Bot" \
@@ -61,3 +66,6 @@ EXPOSE 8000
 
 # Create volumes
 VOLUME ["/app/logs", "/app/data"]
+
+# Set working directory
+WORKDIR /app
